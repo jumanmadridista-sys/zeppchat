@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZEPP CHAT - Covert & Secure Messaging</title>
+    <title>ZEPP CHAT - Multi-User Covert Messaging</title>
     <!-- Library Kriptografi AES-256 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
@@ -12,9 +12,9 @@
         
         /* Modal Login Overlap */
         .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(12, 19, 23, 0.95); display: flex; justify-content: center; align-items: center; z-index: 999; }
-        .login-box { background: #111b21; padding: 25px; border-radius: 10px; border: 1px solid #00a884; width: 320px; color: #e9edef; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        .login-box { background: #111b21; padding: 25px; border-radius: 10px; border: 1px solid #00a884; width: 340px; color: #e9edef; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
         .login-box h3 { margin-bottom: 15px; color: #00a884; font-size: 18px; }
-        .login-box input { width: 100%; padding: 10px; margin: 8px 0; background: #2a3942; border: 1px solid #3b4a54; border-radius: 6px; color: #fff; font-size: 13px; text-align: center; outline: none; }
+        .login-box select, .login-box input { width: 100%; padding: 10px; margin: 8px 0; background: #2a3942; border: 1px solid #3b4a54; border-radius: 6px; color: #fff; font-size: 13px; text-align: center; outline: none; }
         .login-box button { width: 100%; padding: 10px; margin-top: 10px; background: #00a884; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; }
         .login-box button:hover { background: #008f70; }
         
@@ -53,14 +53,19 @@
 </head>
 <body>
 
-<!-- MODAL LOGIN VERIFIKASI IDENTITAS -->
+<!-- MODAL LOGIN SELEKSI PERAN (USER 1 / USER 2) -->
 <div class="login-overlay" id="loginModal">
     <div class="login-box">
-        <h3>Akses Zepp Chat</h3>
-        <p style="font-size: 11px; color: #8696a0; margin-bottom: 12px;">Verifikasi User ID Terdaftar</p>
-        <input type="text" id="login-id" placeholder="Masukkan User ID (1574096976)">
-        <input type="password" id="login-pin" placeholder="Masukkan Kunci PIN (1111)">
-        <button onclick="autentikasiUser()">Masuk Aplikasi</button>
+        <h3>Akses Zepp Chat Dual-User</h3>
+        <p style="font-size: 11px; color: #8696a0; margin-bottom: 12px;">Pilih Identitas Akun Pengguna</p>
+        
+        <select id="login-role">
+            <option value="1574096976">Joe (ID: 1574096976)</option>
+            <option value="1998310501">User 2 (ID: 1998310501)</option>
+        </select>
+        
+        <input type="password" id="login-pin" placeholder="Masukkan PIN Akses (1111)">
+        <button onclick="autentikasiUser()">Masuk Sesi</button>
     </div>
 </div>
 
@@ -73,9 +78,9 @@
         </div>
         <div class="chat-list">
             <div class="chat-item">
-                <div class="avatar">JK</div>
+                <div class="avatar" id="user-avatar">--</div>
                 <div>
-                    <div style="font-weight: bold; font-size: 14px;" id="user-display-name">Jo Kurn (1574096976)</div>
+                    <div style="font-weight: bold; font-size: 14px;" id="user-display-name">Mengisi profil...</div>
                     <div style="font-size: 11px; color: #8696a0;" id="chat-status">Status: Menghubungkan...</div>
                 </div>
             </div>
@@ -86,29 +91,29 @@
     <div class="main-chat">
         <div class="chat-header">
             <div>
-                <strong>Dekripsi Pesan Rahasia (AES-256 + Steganografi)</strong>
-                <div style="font-size: 10px; color: #8696a0;">Terhubung Langsung dengan Node Telegram 1574096976</div>
+                <strong>Komunikasi Terenkripsi (AES-256 + Steganografi)</strong>
+                <div style="font-size: 10px; color: #8696a0;" id="target-info-header">Target Node: -</div>
             </div>
-            <span class="status-online">● Authenticated</span>
+            <span class="status-online">● Session Active</span>
         </div>
 
         <div class="messages-area" id="msg-container"></div>
 
-        <!-- Form Input Pengiriman -->
+        <!-- Form Input Pengiriman Ganda -->
         <div class="input-panel">
             <div class="input-row">
                 <div style="width: 35%;">
-                    <div class="label-text">Target ID (Terkunci Permanen):</div>
-                    <input type="text" id="target-id" value="1574096976" readonly style="width: 100%; opacity: 0.7; cursor: not-allowed; background: #182229;">
+                    <div class="label-text">Tujuan ID (Otomatis):</div>
+                    <input type="text" id="target-id" readonly style="width: 100%; opacity: 0.7; cursor: not-allowed; background: #182229;">
                 </div>
                 <div style="width: 65%;">
-                    <div class="label-text">Pesan Umpan / Kamuflase (Tampil di Telegram Target):</div>
-                    <input type="text" id="decoy-msg" placeholder="Misal: Besok rapat jam berapa?" value="Halo bro, besok rapat jam berapa?" style="width: 100%;">
+                    <div class="label-text">Pesan Umpan (Tampil di Bot Telegram Target):</div>
+                    <input type="text" id="decoy-msg" placeholder="Pesan kamuflase..." value="Halo, besok rapat jam berapa?" style="width: 100%;">
                 </div>
             </div>
 
             <div>
-                <div class="label-text">Pesan Rahasia Asli (AES-256 Steganografi):</div>
+                <div class="label-text">Pesan Rahasia Asli (Terenkripsi AES-256):</div>
                 <div class="input-row">
                     <input type="text" id="secret-msg" placeholder="Ketik pesan rahasia di sini..." style="flex: 1;" onkeypress="handleEnter(event)">
                     <button class="btn-send" onclick="sendCovertMessage()">Kirim Simultan</button>
@@ -121,23 +126,50 @@
 <script>
     const BOT_TOKEN = "8807442602:AAEGfZgvFU4ClbOpmzsOpGxbEFLt9945qLc"; 
     const SECRET_KEY_AES = "ZeppChatSecretKey2026";
-    const TARGET_LOCKED_ID = "1574096976";
     
-    let lastUpdateId = 0;
-    let chatHistory = JSON.parse(localStorage.getItem('zepp_chat_history')) || [];
+    let currentUserId = "";
+    let currentUserName = "";
+    let targetUserId = "";
+    let targetUserName = "";
 
-    // FUNGSI AUTENTIKASI USER (LOGIN)
+    let lastUpdateId = 0;
+    let chatHistory = [];
+
+    // AUTENTIKASI DUAL USER
     function autentikasiUser() {
-        const inputId = document.getElementById('login-id').value.trim();
+        const selectedId = document.getElementById('login-role').value;
         const inputPin = document.getElementById('login-pin').value.trim();
 
-        if (inputId === "1574096976" && inputPin === "1111") {
+        if (inputPin === "1111") {
+            currentUserId = selectedId;
+            
+            if (currentUserId === "1574096976") {
+                currentUserName = "Joe";
+                targetUserId = "1998310501";
+                targetUserName = "User 2";
+            } else {
+                currentUserName = "User 2";
+                targetUserId = "1574096976";
+                targetUserName = "Joe";
+            }
+
+            // Set Tampilan UI
+            document.getElementById('user-avatar').innerText = currentUserName === "Joe" ? "JO" : "U2";
+            document.getElementById('user-display-name').innerText = `${currentUserName} (${currentUserId})`;
+            document.getElementById('target-id').value = targetUserId;
+            document.getElementById('target-info-header').innerText = `Target Node: ${targetUserName} (${targetUserId})`;
+
+            // Load Chat History berdasarkan ID
+            chatHistory = JSON.parse(localStorage.getItem(`zepp_history_${currentUserId}`)) || [];
+
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').classList.add('active');
             renderHistory();
+            
+            // Polling Pesan Masuk Secara Periodik
             setInterval(fetchIncomingMessages, 2000);
         } else {
-            alert("User ID atau PIN Salah! Akses Ditolak.");
+            alert("PIN Akses Salah! Gunakan PIN: 1111");
         }
     }
 
@@ -145,7 +177,6 @@
         if (e.key === 'Enter') sendCovertMessage();
     }
 
-    // KONVERSI TEKS KE KARAKTER GAIB (ZERO-WIDTH)
     function textToZeroWidth(text) {
         return text.split('').map(char => {
             const binary = char.charCodeAt(0).toString(2).padStart(8, '0');
@@ -153,7 +184,6 @@
         }).join('\u200D');
     }
 
-    // KONVERSI KARAKTER GAIB KEMBALI KE TEKS AES
     function zeroWidthToText(zeroWidthStr) {
         try {
             const chars = zeroWidthStr.split('\u200D');
@@ -169,7 +199,7 @@
         container.innerHTML = '';
         
         if (chatHistory.length === 0) {
-            container.innerHTML = `<div class="bubble bubble-them">Sistem Terautentikasi (Jo Kurn / 1574096976). Pesan terdekripsi akan tampil di sini secara realtime.</div>`;
+            container.innerHTML = `<div class="bubble bubble-them">Sesi aktif sebagai <strong>${currentUserName}</strong>. Pesan terdekripsi dari ${targetUserName} akan otomatis muncul di sini.</div>`;
             return;
         }
 
@@ -177,7 +207,7 @@
             const bubble = document.createElement('div');
             if (item.type === 'me') {
                 bubble.className = 'bubble bubble-me';
-                bubble.innerHTML = `<div style="font-size:10px; color:#aebac1; margin-bottom:2px;">🔒 Terkirim ke 1574096976</div>${item.text}`;
+                bubble.innerHTML = `<div style="font-size:10px; color:#aebac1; margin-bottom:2px;">🔒 Terkirim ke ${targetUserName} (${targetUserId})</div>${item.text}`;
             } else {
                 bubble.className = 'bubble bubble-them';
                 bubble.innerHTML = `<strong style="font-size: 10px; color: #00a884;">${item.sender}</strong><br>${item.text}`;
@@ -187,9 +217,7 @@
         container.scrollTop = container.scrollHeight;
     }
 
-    // FUNGSI KIRIM PESAN COVERT
     async function sendCovertMessage() {
-        const targetId = TARGET_LOCKED_ID;
         const decoyText = document.getElementById('decoy-msg').value;
         const secretText = document.getElementById('secret-msg').value;
 
@@ -199,16 +227,16 @@
         }
 
         chatHistory.push({ type: 'me', text: secretText });
-        localStorage.setItem('zepp_chat_history', JSON.stringify(chatHistory));
+        localStorage.setItem(`zepp_history_${currentUserId}`, JSON.stringify(chatHistory));
         renderHistory();
 
         // 1. Enkripsi AES-256
         const ciphertext = CryptoJS.AES.encrypt(secretText, SECRET_KEY_AES).toString();
         
-        // 2. Ubah Ciphertext Jadi Karakter Gaib
+        // 2. Ubah Ciphertext Ke Zero-Width
         const hiddenPayload = textToZeroWidth(ciphertext);
 
-        // 3. Gabungkan Teks Umpan + Karakter Gaib
+        // 3. Gabungkan Pesan
         const payloadTelegram = decoyText + hiddenPayload;
 
         document.getElementById('secret-msg').value = '';
@@ -217,14 +245,13 @@
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: targetId, text: payloadTelegram })
+                body: JSON.stringify({ chat_id: targetUserId, text: payloadTelegram })
             });
         } catch (err) {
-            alert("Gagal terkirim ke Telegram!");
+            alert("Gagal terkirim ke Bot Telegram!");
         }
     }
 
-    // FUNGSI RECEIVE / BACA CHAT MASUK DARI TELEGRAM ID 1574096976
     async function fetchIncomingMessages() {
         try {
             const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}`);
@@ -239,10 +266,9 @@
                     if (update.message && update.message.text) {
                         const senderId = String(update.message.chat.id);
                         
-                        // Filter HANYA menerima pesan yang dikirim oleh ID 1574096976 (Jo Kurn)
-                        if (senderId === TARGET_LOCKED_ID) {
+                        // Menerima pesan HANYA dari target lawan (bukan dari akun sendiri)
+                        if (senderId === targetUserId) {
                             const rawText = update.message.text;
-                            const senderName = update.message.from.first_name || "Jo Kurn";
 
                             let displayText = rawText;
                             const zeroWidthMatch = rawText.match(/[\u200B\u200C\u200D]+/g);
@@ -258,27 +284,27 @@
                                 }
                             }
 
-                            chatHistory.push({ type: 'them', sender: senderName, text: displayText });
+                            chatHistory.push({ type: 'them', sender: targetUserName, text: displayText });
                             hasNewMsg = true;
                         }
                     }
                 });
 
                 if (hasNewMsg) {
-                    localStorage.setItem('zepp_chat_history', JSON.stringify(chatHistory));
+                    localStorage.setItem(`zepp_history_${currentUserId}`, JSON.stringify(chatHistory));
                     renderHistory();
                 }
             }
-            document.getElementById('chat-status').innerText = "Status: Terhubung (1574096976)";
+            document.getElementById('chat-status').innerText = `Status: Terhubung dengan ${targetUserName}`;
         } catch (err) {
             document.getElementById('chat-status').innerText = "Status: Terputus...";
         }
     }
 
     function hapusRiwayat() {
-        if (confirm("Hapus seluruh riwayat chat?")) {
+        if (confirm("Hapus seluruh riwayat chat sesi ini?")) {
             chatHistory = [];
-            localStorage.removeItem('zepp_chat_history');
+            localStorage.removeItem(`zepp_history_${currentUserId}`);
             renderHistory();
         }
     }
