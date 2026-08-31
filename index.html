@@ -3,14 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZEPP CHAT - Multi-User Covert Messaging</title>
+    <title>ZEPP CHAT - Realtime Covert Messaging</title>
+    
     <!-- Library Kriptografi AES-256 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <!-- Firebase JS SDK V8 Classical CDN (Stabil & Tanpa Import Module) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
         body { background-color: #0c1317; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
         
-        /* Modal Login Overlap */
         .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(12, 19, 23, 0.95); display: flex; justify-content: center; align-items: center; z-index: 999; }
         .login-box { background: #111b21; padding: 25px; border-radius: 10px; border: 1px solid #00a884; width: 340px; color: #e9edef; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
         .login-box h3 { margin-bottom: 15px; color: #00a884; font-size: 18px; }
@@ -18,45 +23,38 @@
         .login-box button { width: 100%; padding: 10px; margin-top: 10px; background: #00a884; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; }
         .login-box button:hover { background: #008f70; }
         
-        /* App Container */
         .app-container { width: 100%; max-width: 900px; height: 92vh; background: #111b21; border-radius: 8px; display: flex; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); filter: blur(4px); pointer-events: none; transition: filter 0.3s; }
         .app-container.active { filter: none; pointer-events: auto; }
         
-        /* Sidebar Kiri */
         .sidebar { width: 35%; background: #111b21; border-right: 1px solid #222d34; display: flex; flex-direction: column; }
         .sidebar-header { background: #202c33; padding: 14px 16px; color: #e9edef; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .chat-list { flex: 1; overflow-y: auto; }
         .chat-item { padding: 12px 16px; border-bottom: 1px solid #222d34; display: flex; align-items: center; color: #e9edef; background: #202c33; }
         .avatar { width: 40px; height: 40px; background: #00a884; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; }
 
-        /* Main Chat Panel Kanan */
         .main-chat { width: 65%; display: flex; flex-direction: column; background: #0b141a; }
         .chat-header { background: #202c33; padding: 12px 16px; color: #e9edef; font-size: 13px; border-bottom: 1px solid #222d34; display: flex; justify-content: space-between; align-items: center; }
         .messages-area { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background-image: radial-gradient(#202c33 1px, transparent 0); background-size: 20px 20px; }
         
-        /* Gelembung Pesan */
         .bubble { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 13px; color: #e9edef; word-wrap: break-word; }
         .bubble-me { background: #005c4b; align-self: flex-end; border-top-right-radius: 0; }
         .bubble-them { background: #202c33; align-self: flex-start; border-top-left-radius: 0; }
         .status-online { font-size: 11px; color: #00a884; }
         .btn-clear { background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
 
-        /* Form Input Pengiriman Ganda */
         .input-panel { background: #202c33; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #222d34; }
         .input-row { display: flex; gap: 8px; }
         .input-panel input { background: #2a3942; border: 1px solid #3b4a54; padding: 8px 12px; border-radius: 6px; color: #e9edef; font-size: 12px; outline: none; }
         .btn-send { background: #00a884; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .btn-send:hover { background: #008f70; }
-        
         .label-text { font-size: 10px; color: #8696a0; margin-bottom: 2px; }
     </style>
 </head>
 <body>
 
-<!-- MODAL LOGIN SELEKSI PERAN -->
 <div class="login-overlay" id="loginModal">
     <div class="login-box">
-        <h3>Akses Zepp Chat Dual-User</h3>
+        <h3>Zepp Chat - Firebase Sync</h3>
         <p style="font-size: 11px; color: #8696a0; margin-bottom: 12px;">Pilih Identitas Akun Pengguna</p>
         
         <select id="login-role">
@@ -65,58 +63,55 @@
         </select>
         
         <input type="password" id="login-pin" placeholder="Masukkan PIN Akses (1111)">
-        <button onclick="autentikasiUser()">Masuk Sesi</button>
+        <button onclick="autentikasiUser()">Masuk Sesi Realtime</button>
     </div>
 </div>
 
 <div class="app-container" id="mainApp">
-    <!-- Sidebar Kiri -->
     <div class="sidebar">
         <div class="sidebar-header">
             <span>Zepp Chat</span>
-            <button class="btn-clear" onclick="hapusRiwayat()">Hapus Chat</button>
+            <button class="btn-clear" onclick="hapusDatabaseChat()">Hapus Chat</button>
         </div>
         <div class="chat-list">
             <div class="chat-item">
                 <div class="avatar" id="user-avatar">--</div>
                 <div>
-                    <div style="font-weight: bold; font-size: 14px;" id="user-display-name">Mengisi profil...</div>
-                    <div style="font-size: 11px; color: #8696a0;" id="chat-status">Status: Menghubungkan...</div>
+                    <div style="font-weight: bold; font-size: 14px;" id="user-display-name">Profile...</div>
+                    <div style="font-size: 11px; color: #00a884;" id="chat-status">Firebase Connected</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Panel Chat Utama -->
     <div class="main-chat">
         <div class="chat-header">
             <div>
-                <strong>Komunikasi Terenkripsi (AES-256 + Steganografi)</strong>
+                <strong>Komunikasi Realtime (Firebase + AES-256)</strong>
                 <div style="font-size: 10px; color: #8696a0;" id="target-info-header">Target Node: -</div>
             </div>
-            <span class="status-online">● Session Active</span>
+            <span class="status-online">● Firebase Active</span>
         </div>
 
         <div class="messages-area" id="msg-container"></div>
 
-        <!-- Form Input Pengiriman Ganda -->
         <div class="input-panel">
             <div class="input-row">
                 <div style="width: 35%;">
-                    <div class="label-text">Tujuan ID (Otomatis):</div>
-                    <input type="text" id="target-id" readonly style="width: 100%; opacity: 0.7; cursor: not-allowed; background: #182229;">
+                    <div class="label-text">Tujuan ID:</div>
+                    <input type="text" id="target-id" readonly style="width: 100%; opacity: 0.7; background: #182229;">
                 </div>
                 <div style="width: 65%;">
-                    <div class="label-text">Pesan Umpan (Tampil di Bot Telegram Target):</div>
-                    <input type="text" id="decoy-msg" placeholder="Pesan kamuflase..." value="Halo, besok rapat jam berapa?" style="width: 100%;">
+                    <div class="label-text">Pesan Umpan (Dikirim ke Telegram):</div>
+                    <input type="text" id="decoy-msg" value="Halo, rapat besok jam berapa?" style="width: 100%;">
                 </div>
             </div>
 
             <div>
-                <div class="label-text">Pesan Rahasia Asli (Terenkripsi AES-256):</div>
+                <div class="label-text">Pesan Rahasia Asli (AES-256 Steganografi):</div>
                 <div class="input-row">
                     <input type="text" id="secret-msg" placeholder="Ketik pesan rahasia di sini..." style="flex: 1;" onkeypress="handleEnter(event)">
-                    <button class="btn-send" onclick="sendCovertMessage()">Kirim Simultan</button>
+                    <button class="btn-send" onclick="sendCovertMessage()">Kirim Realtime</button>
                 </div>
             </div>
         </div>
@@ -124,6 +119,21 @@
 </div>
 
 <script>
+    // Konfigurasi Firebase zepp-chatt milik Anda
+    const firebaseConfig = {
+        apiKey: "AIzaSyAXI-2th66TkDQ5b5HQjNOr6ahSDzG3Dgs",
+        authDomain: "zepp-chatt.firebaseapp.com",
+        databaseURL: "https://zepp-chatt-default-rtdb.firebaseio.com",
+        projectId: "zepp-chatt",
+        storageBucket: "zepp-chatt.firebasestorage.app",
+        messagingSenderId: "44690142015",
+        appId: "1:44690142015:web:29bb7709ec8bb707f0998a"
+    };
+
+    // Inisialisasi Firebase V8 Klasik
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
     const BOT_TOKEN = "8807442602:AAEGfZgvFU4ClbOpmzsOpGxbEFLt9945qLc"; 
     const SECRET_KEY_AES = "ZeppChatSecretKey2026";
     
@@ -132,10 +142,6 @@
     let targetUserId = "";
     let targetUserName = "";
 
-    let lastUpdateId = 0;
-    let chatHistory = [];
-
-    // AUTENTIKASI DUAL USER
     function autentikasiUser() {
         const selectedId = document.getElementById('login-role').value;
         const inputPin = document.getElementById('login-pin').value.trim();
@@ -153,21 +159,15 @@
                 targetUserName = "Joe";
             }
 
-            // Set Tampilan UI
             document.getElementById('user-avatar').innerText = currentUserName === "Joe" ? "JO" : "U2";
             document.getElementById('user-display-name').innerText = `${currentUserName} (${currentUserId})`;
             document.getElementById('target-id').value = targetUserId;
             document.getElementById('target-info-header').innerText = `Target Node: ${targetUserName} (${targetUserId})`;
 
-            // Load Chat History berdasarkan ID
-            chatHistory = JSON.parse(localStorage.getItem(`zepp_history_${currentUserId}`)) || [];
-
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('mainApp').classList.add('active');
-            renderHistory();
-            
-            // Polling Pesan Masuk Realtime (Setiap 2 Detik)
-            setInterval(fetchIncomingMessages, 2000);
+
+            listenRealtimeMessages();
         } else {
             alert("PIN Akses Salah! Gunakan PIN: 1111");
         }
@@ -184,39 +184,42 @@
         }).join('\u200D');
     }
 
-    function zeroWidthToText(zeroWidthStr) {
-        try {
-            const chars = zeroWidthStr.split('\u200D');
-            return chars.map(char => {
-                const binary = char.split('').map(bit => bit === '\u200B' ? '1' : (bit === '\u200C' ? '0' : '')).join('');
-                return String.fromCharCode(parseInt(binary, 2));
-            }).join('');
-        } catch(e) { return ""; }
-    }
+    // Listener Realtime Firebase Database
+    function listenRealtimeMessages() {
+        const chatRef = database.ref('chats');
 
-    function renderHistory() {
-        const container = document.getElementById('msg-container');
-        container.innerHTML = '';
-        
-        if (chatHistory.length === 0) {
-            container.innerHTML = `<div class="bubble bubble-them">Sesi aktif sebagai <strong>${currentUserName}</strong>. Pesan terdekripsi dari ${targetUserName} akan otomatis muncul di sini.</div>`;
-            return;
-        }
-
-        chatHistory.forEach(item => {
-            const bubble = document.createElement('div');
-            if (item.type === 'me') {
-                bubble.className = 'bubble bubble-me';
-                bubble.innerHTML = `<div style="font-size:10px; color:#aebac1; margin-bottom:2px;">🔒 Terkirim ke ${targetUserName} (${targetUserId})</div>${item.text}`;
-            } else {
-                bubble.className = 'bubble bubble-them';
-                bubble.innerHTML = `<strong style="font-size: 10px; color: #00a884;">${item.sender}</strong><br>${item.text}`;
+        chatRef.on('value', (snapshot) => {
+            const container = document.getElementById('msg-container');
+            container.innerHTML = '';
+            
+            const data = snapshot.val();
+            if (!data) {
+                container.innerHTML = `<div class="bubble bubble-them">Sesi terhubung secara realtime via Firebase. Mulai kirim pesan rahasia!</div>`;
+                return;
             }
-            container.appendChild(bubble);
+
+            Object.values(data).forEach(item => {
+                if ((item.senderId === currentUserId && item.receiverId === targetUserId) ||
+                    (item.senderId === targetUserId && item.receiverId === currentUserId)) {
+                    
+                    const bubble = document.createElement('div');
+                    
+                    if (item.senderId === currentUserId) {
+                        bubble.className = 'bubble bubble-me';
+                        bubble.innerHTML = `<div style="font-size:10px; color:#aebac1; margin-bottom:2px;">🔒 Terkirim ke ${targetUserName}</div>${item.secretMessage}`;
+                    } else {
+                        bubble.className = 'bubble bubble-them';
+                        bubble.innerHTML = `<strong style="font-size: 10px; color: #00a884;">${item.senderName}</strong><br>${item.secretMessage}`;
+                    }
+                    
+                    container.appendChild(bubble);
+                }
+            });
+            container.scrollTop = container.scrollHeight;
         });
-        container.scrollTop = container.scrollHeight;
     }
 
+    // Simpan ke Firebase + Trigger Telegram
     async function sendCovertMessage() {
         const decoyText = document.getElementById('decoy-msg').value;
         const secretText = document.getElementById('secret-msg').value;
@@ -226,21 +229,23 @@
             return;
         }
 
-        chatHistory.push({ type: 'me', text: secretText });
-        localStorage.setItem(`zepp_history_${currentUserId}`, JSON.stringify(chatHistory));
-        renderHistory();
-
-        // 1. Enkripsi AES-256
         const ciphertext = CryptoJS.AES.encrypt(secretText, SECRET_KEY_AES).toString();
-        
-        // 2. Ubah Ciphertext Ke Zero-Width
         const hiddenPayload = textToZeroWidth(ciphertext);
-
-        // 3. Gabungkan Pesan
         const payloadTelegram = decoyText + hiddenPayload;
+
+        // Push ke Database
+        const newChatRef = database.ref('chats').push();
+        await newChatRef.set({
+            senderId: currentUserId,
+            senderName: currentUserName,
+            receiverId: targetUserId,
+            secretMessage: secretText,
+            timestamp: Date.now()
+        });
 
         document.getElementById('secret-msg').value = '';
 
+        // Trigger Notifikasi ke Telegram
         try {
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
@@ -248,90 +253,13 @@
                 body: JSON.stringify({ chat_id: targetUserId, text: payloadTelegram })
             });
         } catch (err) {
-            alert("Gagal terkirim ke Bot Telegram!");
+            console.log("Notifikasi Telegram gagal, namun data Firebase tetap realtime.");
         }
     }
 
-    // PEMBAHARUAN FUNGSI POLLING MULTI-UPDATE REALTIME
-    async function fetchIncomingMessages() {
-        if (!currentUserId) return;
-
-        try {
-            let url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`;
-            if (lastUpdateId > 0) {
-                url += `?offset=${lastUpdateId + 1}`;
-            }
-
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.ok && data.result.length > 0) {
-                let hasNewMsg = false;
-                
-                data.result.forEach(update => {
-                    if (update.update_id >= lastUpdateId) {
-                        lastUpdateId = update.update_id;
-                    }
-                    
-                    const msg = update.message;
-                    if (msg && msg.text) {
-                        const senderId = String(msg.chat.id);
-                        
-                        // Menerima pesan HANYA dari target lawan
-                        if (senderId === targetUserId) {
-                            const rawText = msg.text;
-                            let displayText = rawText;
-                            
-                            // Ekstrak Zero-Width Steganografi
-                            const zeroWidthMatch = rawText.match(/[\u200B\u200C\u200D]+/g);
-                            
-                            if (zeroWidthMatch) {
-                                const extractedCipher = zeroWidthToText(zeroWidthMatch.join(''));
-                                if (extractedCipher) {
-                                    try {
-                                        const bytes = CryptoJS.AES.decrypt(extractedCipher, SECRET_KEY_AES);
-                                        const originalText = bytes.toString(CryptoJS.enc.Utf8);
-                                        if (originalText) {
-                                            displayText = originalText;
-                                        }
-                                    } catch(e) {}
-                                }
-                            }
-
-                            // Filter cegah duplikasi pesan
-                            const isDuplicate = chatHistory.some(item => 
-                                item.type === 'them' && item.text === displayText && (Date.now() - item.time < 5000)
-                            );
-
-                            if (!isDuplicate) {
-                                chatHistory.push({ 
-                                    type: 'them', 
-                                    sender: targetUserName, 
-                                    text: displayText,
-                                    time: Date.now()
-                                });
-                                hasNewMsg = true;
-                            }
-                        }
-                    }
-                });
-
-                if (hasNewMsg) {
-                    localStorage.setItem(`zepp_history_${currentUserId}`, JSON.stringify(chatHistory));
-                    renderHistory();
-                }
-            }
-            document.getElementById('chat-status').innerText = `Status: Terhubung (${targetUserName})`;
-        } catch (err) {
-            document.getElementById('chat-status').innerText = "Status: Memeriksa koneksi...";
-        }
-    }
-
-    function hapusRiwayat() {
-        if (confirm("Hapus seluruh riwayat chat sesi ini?")) {
-            chatHistory = [];
-            localStorage.removeItem(`zepp_history_${currentUserId}`);
-            renderHistory();
+    function hapusDatabaseChat() {
+        if (confirm("Hapus seluruh riwayat chat di Firebase Database?")) {
+            database.ref('chats').remove();
         }
     }
 </script>
