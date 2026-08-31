@@ -8,7 +8,7 @@
     <!-- Library Kriptografi AES-256 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
-    <!-- Firebase JS SDK V8 Classical CDN (Stabil & Tanpa Import Module) -->
+    <!-- Firebase JS SDK V8 Classical CDN -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -130,7 +130,7 @@
         appId: "1:44690142015:web:29bb7709ec8bb707f0998a"
     };
 
-    // Inisialisasi Firebase V8 Klasik
+    // Inisialisasi Firebase V8
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
@@ -219,7 +219,7 @@
         });
     }
 
-    // Simpan ke Firebase + Trigger Telegram
+    // Simpan ke Firebase + Trigger Telegram (ke Penerima & Pengirim)
     async function sendCovertMessage() {
         const decoyText = document.getElementById('decoy-msg').value;
         const secretText = document.getElementById('secret-msg').value;
@@ -245,7 +245,7 @@
 
         document.getElementById('secret-msg').value = '';
 
-        // Trigger Notifikasi ke Telegram
+        // 1. Kirim Notifikasi ke Telegram Penerima
         try {
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
@@ -253,7 +253,18 @@
                 body: JSON.stringify({ chat_id: targetUserId, text: payloadTelegram })
             });
         } catch (err) {
-            console.log("Notifikasi Telegram gagal, namun data Firebase tetap realtime.");
+            console.log("Notifikasi Telegram penerima gagal.");
+        }
+
+        // 2. Kirim Notifikasi Tembusan ke Telegram Pengirim Sendiri (Sebagai Bukti Balasan)
+        try {
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: currentUserId, text: `[Anda Membalas ke ${targetUserName}]:\n` + payloadTelegram })
+            });
+        } catch (err) {
+            console.log("Tembusan Telegram pengirim gagal.");
         }
     }
 
