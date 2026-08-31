@@ -59,7 +59,7 @@
         
         <select id="login-role">
             <option value="1574096976">Joe (ID: 1574096976)</option>
-            <option value="1998310501">User 2 (ID: 1998310501)</option>
+            <option value="1998310501">User 2 / Bayu (ID: 1998310501)</option>
         </select>
         
         <input type="password" id="login-pin" placeholder="Masukkan PIN Akses (1111)">
@@ -102,8 +102,8 @@
                     <input type="text" id="target-id" readonly style="width: 100%; opacity: 0.7; background: #182229;">
                 </div>
                 <div style="width: 65%;">
-                    <div class="label-text">Pesan Umpan (Dikirim ke Telegram):</div>
-                    <input type="text" id="decoy-msg" value="Halo, rapat besok jam berapa?" style="width: 100%;">
+                    <div class="label-text">Pesan Umpan (Tampak di Telegram Bot):</div>
+                    <input type="text" id="decoy-msg" value="besok rapat jam 8" style="width: 100%;">
                 </div>
             </div>
 
@@ -119,7 +119,7 @@
 </div>
 
 <script>
-    // Konfigurasi Firebase zepp-chatt milik Anda
+    // Konfigurasi Firebase zepp-chatt
     const firebaseConfig = {
         apiKey: "AIzaSyAXI-2th66TkDQ5b5HQjNOr6ahSDzG3Dgs",
         authDomain: "zepp-chatt.firebaseapp.com",
@@ -130,7 +130,6 @@
         appId: "1:44690142015:web:29bb7709ec8bb707f0998a"
     };
 
-    // Inisialisasi Firebase V8
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
@@ -152,14 +151,14 @@
             if (currentUserId === "1574096976") {
                 currentUserName = "Joe";
                 targetUserId = "1998310501";
-                targetUserName = "User 2";
+                targetUserName = "Bayu";
             } else {
-                currentUserName = "User 2";
+                currentUserName = "Bayu";
                 targetUserId = "1574096976";
                 targetUserName = "Joe";
             }
 
-            document.getElementById('user-avatar').innerText = currentUserName === "Joe" ? "JO" : "U2";
+            document.getElementById('user-avatar').innerText = currentUserName === "Joe" ? "JO" : "BY";
             document.getElementById('user-display-name').innerText = `${currentUserName} (${currentUserId})`;
             document.getElementById('target-id').value = targetUserId;
             document.getElementById('target-info-header').innerText = `Target Node: ${targetUserName} (${targetUserId})`;
@@ -184,7 +183,7 @@
         }).join('\u200D');
     }
 
-    // Listener Realtime Firebase Database
+    // Read Realtime Database Firebase
     function listenRealtimeMessages() {
         const chatRef = database.ref('chats');
 
@@ -219,7 +218,7 @@
         });
     }
 
-    // Simpan ke Firebase + Trigger Telegram (ke Penerima & Pengirim)
+    // Kirim pesan ke Database dan Meneruskan Kamuflase ke Telegram 2 Sisi
     async function sendCovertMessage() {
         const decoyText = document.getElementById('decoy-msg').value;
         const secretText = document.getElementById('secret-msg').value;
@@ -233,7 +232,7 @@
         const hiddenPayload = textToZeroWidth(ciphertext);
         const payloadTelegram = decoyText + hiddenPayload;
 
-        // Push ke Database
+        // 1. Simpan pesan rahasia ke Firebase Realtime Database
         const newChatRef = database.ref('chats').push();
         await newChatRef.set({
             senderId: currentUserId,
@@ -245,7 +244,7 @@
 
         document.getElementById('secret-msg').value = '';
 
-        // 1. Kirim Notifikasi ke Telegram Penerima
+        // 2. Teruskan pesan kamuflase ke Telegram Penerima (Misal: Bayu)
         try {
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
@@ -253,18 +252,18 @@
                 body: JSON.stringify({ chat_id: targetUserId, text: payloadTelegram })
             });
         } catch (err) {
-            console.log("Notifikasi Telegram penerima gagal.");
+            console.log("Pesan Telegram penerima gagal dikirim.");
         }
 
-        // 2. Kirim Notifikasi Tembusan ke Telegram Pengirim Sendiri (Sebagai Bukti Balasan)
+        // 3. Teruskan pesan kamuflase ke Telegram Pengirim (Misal: Jo Kurn) sebagai log kirim bot
         try {
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: currentUserId, text: `[Anda Membalas ke ${targetUserName}]:\n` + payloadTelegram })
+                body: JSON.stringify({ chat_id: currentUserId, text: payloadTelegram })
             });
         } catch (err) {
-            console.log("Tembusan Telegram pengirim gagal.");
+            console.log("Pesan Telegram pengirim gagal dikirim.");
         }
     }
 
